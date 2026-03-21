@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+uploads/
+test_*.pdf
+users_list.txt
+users_list_utf8.txt
+reset_token.txt
+get_token.js
