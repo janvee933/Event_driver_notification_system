@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 1024 * 1024 * 1024 // 1GB max
+    fileSize: 1024 * 1024 * 1024 
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype !== "application/pdf") {
@@ -48,6 +48,7 @@ const {
   healthCheck,
   triggerDailyDigest,
   deleteUser,
+  deleteTask,
   uploadTaskFile,
   deleteTaskFile,
   signupUser,
@@ -80,6 +81,7 @@ router.post("/reset-password", resetPassword);
 
 router.get("/tasks", getTasks);
 router.put("/tasks/:id/status", updateTaskStatus);
+router.delete("/tasks/:id", deleteTask);
 router.post("/tasks/comment", addComment);
 router.post("/comment", addComment); 
 
@@ -95,11 +97,11 @@ router.post("/tasks/:id/upload", (req, res, next) => {
       return res.status(400).json({ error: err.message });
     }
 
-    // Minimum size check (2MB)
-    if (req.file && req.file.size < 2 * 1024 * 1024) {
+    // Minimum size check (1KB)
+    if (req.file && req.file.size < 1 * 1024) {
       // Delete the file if it's too small
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "File size must be at least 2MB" });
+      return res.status(400).json({ error: "File size must be at least 1KB" });
     }
     
     next();

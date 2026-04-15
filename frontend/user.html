@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification System | My Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme user-portal">
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">🔔</div>
+                <span class="logo-text">Employee Portal</span>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-view="dashboard">
+                    <span class="icon">📊</span> My Dashboard
+                </button>
+                <button class="nav-item" data-view="tasks">
+                    <span class="icon">📝</span> My Tasks
+                </button>
+            </nav>
+
+            <div class="user-info-section">
+                <div id="logged-user-name" style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.2rem;">User Name</div>
+                <div id="user-role-badge" class="user-role-badge">Employee</div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h1 id="view-title">My Dashboard</h1>
+                <div class="header-actions">
+                    <div class="notification-bell" id="noti-bell">
+                        <span class="bell-icon">🔔</span>
+                        <span class="badge" id="noti-badge">0</span>
+                        <div class="notification-dropdown" id="noti-dropdown">
+                            <div class="dropdown-header">
+                                <h3>Notifications</h3>
+                                <button id="mark-all-read">Mark all as read</button>
+                            </div>
+                            <div class="notification-list" id="noti-list">
+                                <div class="empty-state">No new notifications</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" id="logout-btn">Logout</button>
+                </div>
+            </header>
+
+            <section id="dashboard-view" class="view">
+                <div class="stats-grid">
+                    <div class="stat-card" id="stat-card-tasks">
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-info">
+                            <span class="stat-label">My Active Tasks</span>
+                            <span class="stat-value" id="stats-tasks">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card" id="stat-card-notis">
+                        <div class="stat-icon">🔔</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Messages</span>
+                            <span class="stat-value" id="stats-notis">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-grid">
+                    <div class="panel">
+                        <h3>Upcoming Deadlines</h3>
+                        <div class="list-container" id="recent-tasks-list">
+                            <div class="empty-state">Loading your tasks...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tasks-view" class="view hidden">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>My Task List</h2>
+                    </div>
+                    <div class="table-container">
+                        <table id="tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Description</th>
+                                    <th>Assigned Date</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Global Loader -->
+    <div id="global-loader" class="loader-overlay hidden">
+        <div class="loader-content">
+            <div class="premium-spinner"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <!-- Hidden file input for task uploads -->
+    <input type="file" id="task-file-input" style="display: none;" accept="application/pdf">
+
+    <div id="toast-container"></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="user.js"></script>
+</body>
+</html>

@@ -24,6 +24,25 @@
     --danger: #ff4757;
 }
 
+/* Employee Portal Specific Theme (Emerald/Teal) */
+.user-portal {
+    --primary: #10b981; /* Emerald Green */
+    --primary-hover: #059669;
+    --primary-glow: rgba(16, 185, 129, 0.4);
+    --accent: #3b82f6; /* Blue accent */
+    --border-highlight: rgba(16, 185, 129, 0.2);
+}
+.user-portal .logo-text {
+    background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+.user-portal .nav-item.active {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: var(--border-highlight);
+    color: var(--primary);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -808,6 +827,24 @@ tbody tr:last-child td { border-bottom: none; }
     display: flex;
     gap: 0.5rem;
     align-items: center;
+}
+
+/* User Status Dots */
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: middle;
+}
+.status-online {
+    background-color: #22c55e; /* Standard green */
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+    animation: pulse 2s infinite;
+}
+.status-offline {
+    background-color: #ee4444; /* Standard red */
+    box-shadow: 0 0 10px rgba(238, 68, 68, 0.6);
 }
 
 .btn-outline {

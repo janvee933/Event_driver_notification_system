@@ -101,7 +101,7 @@ eventEmitter.on("user:created_by_admin", async (data) => {
       subject: "Your Account Credentials",
       channels: ["email"]
     });
-    // Also save an in-app welcome
+    
     await saveToDb(userId, `Welcome ${name}! Your account was created by an admin.`);
   } catch (err) {
     await saveToDb(userId, message);

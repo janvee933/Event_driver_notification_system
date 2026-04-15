@@ -9,6 +9,15 @@ exports.assignTask = (req, res) => {
     return res.status(400).json({ error: "title, userId, and assignedBy are required" });
   }
 
+  if (dueDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const taskDate = new Date(dueDate);
+    if (taskDate < today) {
+      return res.status(400).json({ error: "Due date cannot be in the past" });
+    }
+  }
+
   const sql = "INSERT INTO tasks(title, assigned_to, description, due_date, status, assigned_by) VALUES (?, ?, ?, ?, 'pending', ?)";
 
   db.query(sql, [title, userId, description || '', dueDate || null, assignedBy], (err, result) => {
@@ -33,14 +42,13 @@ exports.assignTask = (req, res) => {
 exports.deleteUser = (req, res) => {
   const { id } = req.params;
 
-  // 1. Delete associated notifications first (Cascading delete simulation)
+  
   db.query("DELETE FROM notifications WHERE user_id = ?", [id], (err) => {
     if (err) {
       console.error("[deleteUser] Error deleting notifications:", err);
       return res.status(500).json({ error: "Failed to delete user's notifications" });
     }
 
-    // 2. Delete the user
     db.query("DELETE FROM users WHERE id = ?", [id], (err, result) => {
       if (err) {
         console.error("[deleteUser] DB Error:", err);
@@ -70,13 +78,17 @@ exports.getNotifications = (req, res) => {
   });
 };
 
-// --- New User APIs ---
+
 
 exports.createUser = (req, res) => {
   const { name, email, mobile_number, password, role } = req.body;
 
   if (!name || !email || !password) {
     return res.status(400).json({ error: "name, email, and password are required" });
+  }
+
+  if (mobile_number && !/^\d{10}$/.test(mobile_number)) {
+    return res.status(400).json({ error: "Mobile number must be exactly 10 digits" });
   }
 
   const bcrypt = require("bcryptjs");
@@ -90,7 +102,6 @@ exports.createUser = (req, res) => {
         return res.status(500).json({ error: "Failed to create user", details: err.message });
       }
       
-      // Emit event with PLAIN password for the email notification
       eventEmitter.emit("user:created_by_admin", { 
         userId: result.insertId, 
         name, 
@@ -110,6 +121,10 @@ exports.signupUser = async (req, res) => {
 
   if (!name || !email || !mobile_number || !password || !confirm_password) {
     return res.status(400).json({ error: "All fields are required" });
+  }
+
+  if (!/^\d{10}$/.test(mobile_number)) {
+    return res.status(400).json({ error: "Mobile number must be exactly 10 digits" });
   }
 
   const ADMIN_CODE = process.env.ADMIN_SIGNUP_CODE || 'admin789';
@@ -143,7 +158,7 @@ exports.signupUser = async (req, res) => {
 };
 
 exports.loginUser = (req, res) => {
-  const { identifier, password } = req.body; // identifier can be email or mobile
+  const { identifier, password } = req.body; 
 
   if (!identifier || !password) {
     return res.status(400).json({ error: "Identifier and password are required" });
@@ -183,7 +198,13 @@ exports.loginUser = (req, res) => {
 };
 
 exports.getUsers = (req, res) => {
-  const sql = "SELECT * FROM users";
+  const { role } = req.query;
+
+  if (role !== 'Admin' && role !== 'Manager') {
+    return res.status(403).json({ error: "Unauthorized access to user list" });
+  }
+
+  const sql = "SELECT id, name, email, role, mobile_number FROM users";
   db.query(sql, (err, result) => {
     if (err) {
       console.error("[getUsers] DB Error:", err);
@@ -193,15 +214,24 @@ exports.getUsers = (req, res) => {
   });
 };
 
-// --- New Task Listing API ---
+
 
 exports.getTasks = (req, res) => {
-  const sql = `
+  const { userId, role } = req.query;
+
+  let sql = `
     SELECT tasks.*, users.name as user_name, users.role as user_role
     FROM tasks 
     LEFT JOIN users ON tasks.assigned_to = users.id
   `;
-  db.query(sql, (err, result) => {
+  
+  const params = [];
+  if (role === 'Employee' && userId) {
+    sql += " WHERE tasks.assigned_to = ?";
+    params.push(userId);
+  }
+
+  db.query(sql, params, (err, result) => {
     if (err) {
       console.error("[getTasks] DB Error:", err);
       return res.status(500).json({ error: "Failed to fetch tasks" });
@@ -225,7 +255,7 @@ exports.addComment = (req, res) => {
 
   eventEmitter.emit("comment:added", {
     taskId,
-    userId, // author
+    userId, 
     content
   });
 
@@ -241,7 +271,7 @@ exports.broadcastNotification = (req, res) => {
 
   console.log(`[Controller] Triggering system-wide announcement`);
 
-  // Fetch all users to fan-out
+
   db.query("SELECT id FROM users", (err, users) => {
     if (err) return res.status(500).json({ error: "DB Error" });
 
@@ -293,33 +323,52 @@ exports.updateTaskStatus = (req, res) => {
     return res.status(400).json({ error: "Invalid status. Must be 'pending' or 'completed'" });
   }
 
-  const sql = "UPDATE tasks SET status = ? WHERE id = ?";
-  db.query(sql, [status, id], (err, result) => {
-    if (err) return res.status(500).json({ error: "DB Error" });
+  if (status === 'completed') {
+    
+    const checkFileSql = "SELECT file_path FROM tasks WHERE id = ?";
+    db.query(checkFileSql, [id], (fileErr, fileResults) => {
+      if (fileErr) return res.status(500).json({ error: "DB Error" });
+      
+      if (fileResults.length === 0) return res.status(404).json({ error: "Task not found" });
 
-    if (status === 'completed') {
-      // Fetch task details and names to emit event to the manager
-      const fetchSql = `
-        SELECT tasks.*, u_assignee.name as assignee_name, u_manager.name as manager_name
-        FROM tasks 
-        LEFT JOIN users u_assignee ON tasks.assigned_to = u_assignee.id
-        LEFT JOIN users u_manager ON tasks.assigned_by = u_manager.id
-        WHERE tasks.id = ?
-      `;
-      db.query(fetchSql, [id], (err, tasks) => {
-        if (!err && tasks.length > 0) {
-          eventEmitter.emit("task:completed", {
-            taskId: id,
-            managerId: tasks[0].assigned_by || 1, // Fallback to 1 if no assigned_by
-            assigneeName: tasks[0].assignee_name || 'An Employee',
-            title: tasks[0].title
-          });
-        }
-      });
-    }
+      if (!fileResults[0].file_path) {
+        return res.status(400).json({ error: "You must upload a PDF file before completing this task" });
+      }
 
-    res.json({ message: `Task status updated to ${status}` });
-  });
+      performStatusUpdate();
+    });
+  } else {
+    performStatusUpdate();
+  }
+
+  function performStatusUpdate() {
+    const sql = "UPDATE tasks SET status = ? WHERE id = ?";
+    db.query(sql, [status, id], (err, result) => {
+      if (err) return res.status(500).json({ error: "DB Error" });
+
+      if (status === 'completed') {
+        const fetchSql = `
+          SELECT tasks.*, u_assignee.name as assignee_name, u_manager.name as manager_name
+          FROM tasks 
+          LEFT JOIN users u_assignee ON tasks.assigned_to = u_assignee.id
+          LEFT JOIN users u_manager ON tasks.assigned_by = u_manager.id
+          WHERE tasks.id = ?
+        `;
+        db.query(fetchSql, [id], (err, tasks) => {
+          if (!err && tasks.length > 0) {
+            eventEmitter.emit("task:completed", {
+              taskId: id,
+              managerId: tasks[0].assigned_by || 1,
+              assigneeName: tasks[0].assignee_name || 'An Employee',
+              title: tasks[0].title
+            });
+          }
+        });
+      }
+
+      res.json({ message: `Task status updated to ${status}` });
+    });
+  }
 };
 
 exports.getStats = (req, res) => {
@@ -327,10 +376,10 @@ exports.getStats = (req, res) => {
   const stats = {};
   
   if (role === 'Employee' && userId) {
-    // Role-specific stats for Employees
+    
     db.query("SELECT COUNT(*) as count FROM tasks WHERE assigned_to = ?", [userId], (err, tasks) => {
       if (err) return res.status(500).json({ error: "DB Error" });
-      stats.activeTasks = tasks[0].count; // Changing meaning to 'Total Assigned Tasks'
+      stats.activeTasks = tasks[0].count; 
 
       db.query("SELECT COUNT(*) as count FROM notifications WHERE user_id = ?", [userId], (err, notis) => {
         if (err) return res.status(500).json({ error: "DB Error" });
@@ -340,14 +389,14 @@ exports.getStats = (req, res) => {
       });
     });
   } else {
-    // Global stats for Admin/Manager
+    
     db.query("SELECT COUNT(*) as count FROM users", (err, users) => {
       if (err) return res.status(500).json({ error: "DB Error" });
       stats.totalUsers = users[0].count;
 
       db.query("SELECT COUNT(*) as count FROM tasks JOIN users ON tasks.assigned_to = users.id WHERE users.role = 'Employee'", (err, tasks) => {
         if (err) return res.status(500).json({ error: "DB Error" });
-        stats.activeTasks = tasks[0].count; // Total count of tasks assigned to Employees
+        stats.activeTasks = tasks[0].count; 
 
         db.query("SELECT COUNT(*) as count FROM notifications", (err, notis) => {
           if (err) return res.status(500).json({ error: "DB Error" });
@@ -365,7 +414,7 @@ exports.healthCheck = (req, res) => {
     status: "healthy",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    database: "connected" // Simplified check
+    database: "connected" 
   });
 };
 
@@ -426,7 +475,6 @@ exports.uploadTaskFile = (req, res) => {
       return res.status(500).json({ error: "Failed to update task with file path" });
     }
 
-    // Trigger notification if needed
     eventEmitter.emit("task:file_uploaded", {
       taskId: id,
       filePath: filePath
@@ -464,6 +512,51 @@ exports.deleteTaskFile = (req, res) => {
         return res.status(500).json({ error: "Failed to update database" });
       }
       res.json({ message: "File deleted successfully" });
+    });
+  });
+};
+
+exports.deleteTask = (req, res) => {
+  const { id } = req.params;
+
+  // First, check if the task has a file to delete
+  db.query("SELECT file_path FROM tasks WHERE id = ?", [id], (err, results) => {
+    if (err) {
+      console.error("[deleteTask] DB Error checking file:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    const filePath = results[0].file_path;
+    if (filePath) {
+      const path = require("path");
+      const fs = require("fs");
+      const fullPath = path.join(__dirname, "..", filePath);
+      if (fs.existsSync(fullPath)) {
+        try {
+          fs.unlinkSync(fullPath);
+        } catch (fileErr) {
+          console.error("[deleteTask] Error deleting file:", fileErr);
+        }
+      }
+    }
+
+    // Now delete the task
+    db.query("DELETE FROM tasks WHERE id = ?", [id], (err, result) => {
+      if (err) {
+        console.error("[deleteTask] DB Error deleting task:", err);
+        return res.status(500).json({ error: "Failed to delete task", details: err.message });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+
+      console.log(`[Controller] Task ${id} deleted successfully.`);
+      res.json({ message: "Task deleted successfully" });
     });
   });
 };
