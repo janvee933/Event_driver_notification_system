@@ -14,17 +14,7 @@ services:
           type: redis
           name: redis-cache
           property: connectionString
-      - key: DATABASE_URL
-        sync: false
-      - key: DB_HOST
-        sync: false
-      - key: DB_PORT
-        value: 3306
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_NAME
+      - key: MONGO_URI
         sync: false
       - key: ADMIN_SIGNUP_CODE
         sync: false
