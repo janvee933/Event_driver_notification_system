@@ -1,20 +1,17 @@
 const eventEmitter = require("./events");
 const { notificationQueue } = require("./queue");
-const db = require("../config/db");
+const Notification = require("../models/Notification");
 
 const saveToDb = async (userId, message) => {
   console.log(`[Database] Saving notification to DB for User ${userId}`);
-  const sql = "INSERT INTO notifications(user_id, message, status) VALUES (?, ?, ?)";
-  return new Promise((resolve, reject) => {
-    db.query(sql, [userId, message, "unread"], (err, res) => {
-      if (err) {
-        console.error("[Database] Error saving notification:", err);
-        reject(err);
-      } else {
-        resolve(res);
-      }
-    });
-  });
+  try {
+    const noti = new Notification({ user_id: userId, message, status: 'unread' });
+    await noti.save();
+    return noti;
+  } catch (err) {
+    console.error("[Database] Error saving notification:", err);
+    throw err;
+  }
 };
 
 eventEmitter.on("task:assigned", async (data) => {
@@ -23,7 +20,6 @@ eventEmitter.on("task:assigned", async (data) => {
 
   console.log(`[Event-Handler] Notification triggered for task: ${title}`);
   try {
-   
     await notificationQueue.add("send-notification", {
       userId,
       message,
@@ -40,7 +36,6 @@ eventEmitter.on("comment:added", async (data) => {
   const { taskId, userId, content } = data;
   const message = `New comment on task ${taskId}: "${content}"`;
 
-  console.log(`[Event-Handler] Notification triggered for comment on task: ${taskId}`);
   try {
     await notificationQueue.add("comment-notification", {
       userId, 
@@ -52,11 +47,8 @@ eventEmitter.on("comment:added", async (data) => {
   }
 });
 
-
 eventEmitter.on("system:announcement", async (data) => {
   const { userIds, message } = data;
-  console.log(`[Event-Handler] Fan-out announcement to ${userIds.length} users`);
-
   for (const userId of userIds) {
     try {
       await notificationQueue.add("send-notification", {
@@ -71,12 +63,9 @@ eventEmitter.on("system:announcement", async (data) => {
   }
 });
 
-
 eventEmitter.on("user:created", async (data) => {
   const { userId, name } = data;
   const message = `Welcome to our system, ${name}! We're glad to have you here.`;
-
-  console.log(`[Event-Handler] Welcome notification triggered for user: ${name}`);
   try {
     await notificationQueue.add("welcome-notification", {
       userId,
@@ -93,7 +82,6 @@ eventEmitter.on("user:created_by_admin", async (data) => {
   const { userId, name, email, password } = data;
   const message = `Welcome ${name}! Your account has been created by an administrator. \nUsername: ${email} \nPassword: ${password} \nPlease login and change your password for security.`;
 
-  console.log(`[Event-Handler] Admin user creation notification triggered for user: ${name}`);
   try {
     await notificationQueue.add("send-notification", {
       userId,
@@ -112,7 +100,6 @@ eventEmitter.on("password:reset_requested", async (data) => {
   const { userId, email, name, token } = data;
   const message = `Hello ${name}, \n\nYou requested a password reset. Your reset code is: ${token} \nThis code is valid for 1 hour. \n\nIf you did not request this, please ignore this email.`;
 
-  console.log(`[Event-Handler] Password reset notification triggered for user: ${name}`);
   try {
     await notificationQueue.add("send-notification", {
       userId,
@@ -121,17 +108,14 @@ eventEmitter.on("password:reset_requested", async (data) => {
       channels: ["email"]
     });
   } catch (err) {
-    // For forgot password, we don't save to in-app DB usually, just email
     console.error("[Event-Handler] Failed to queue password reset email");
   }
 });
-
 
 eventEmitter.on("task:completed", async (data) => {
   const { managerId, assigneeName, title } = data;
   const message = `Task Completed: ${assigneeName} has completed the task "${title}".`;
 
-  console.log(`[Event-Handler] Completion notification triggered for task: ${title} to manager ${managerId}`);
   try {
     await notificationQueue.add("task-completion", {
       userId: managerId,

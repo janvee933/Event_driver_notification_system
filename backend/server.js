@@ -8,6 +8,10 @@ const eventEmitter = require("./services/events");
 
 const taskRoutes = require("./routes/taskRoutes");
 const logger = require("./middleware/logger");
+const connectDB = require("./config/db");
+
+// Connect to MongoDB
+connectDB();
 
 const app = express();
 const server = http.createServer(app);
