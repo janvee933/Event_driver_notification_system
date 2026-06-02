@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     activeUserId = user.id;
-    socket = io('http://localhost:3002');
+    socket = io('https://event-driver-notification-system.onrender.com');
 
     // Signal that this user is online
     socket.emit('user_online', activeUserId);
@@ -62,7 +62,7 @@ async function fetchUsers() {
     showLoader();
     try {
         const user = JSON.parse(sessionStorage.getItem('user'));
-        const response = await fetch(`http://localhost:3002/api/users?role=${user.role}`);
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/users?role=${user.role}`);
         users = await response.json();
         renderUsersTable();
         updateTaskUserSelectors();
@@ -77,7 +77,7 @@ async function fetchTasks() {
     showLoader();
     try {
         const user = JSON.parse(sessionStorage.getItem('user'));
-        const response = await fetch(`http://localhost:3002/api/tasks?userId=${user.id}&role=${user.role}`);
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/tasks?userId=${user.id}&role=${user.role}`);
         tasks = await response.json();
         renderTasksTable();
         renderRecentTasks();
@@ -91,7 +91,7 @@ async function fetchTasks() {
 async function fetchStats() {
     try {
         const user = JSON.parse(sessionStorage.getItem('user'));
-        const response = await fetch(`http://localhost:3002/api/stats?userId=${user.id}&role=${user.role}`);
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/stats?userId=${user.id}&role=${user.role}`);
         const stats = await response.json();
         
         document.getElementById('stats-users').textContent = stats.totalUsers || 0;
@@ -170,7 +170,7 @@ async function handleAddUser(e) {
     }
 
     try {
-        const response = await fetch('http://localhost:3002/api/users', {
+        const response = await fetch('https://event-driver-notification-system.onrender.com/api/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData)
@@ -202,7 +202,7 @@ async function handleAssignTask(e) {
     };
 
     try {
-        const response = await fetch('http://localhost:3002/api/tasks', {
+        const response = await fetch('https://event-driver-notification-system.onrender.com/api/tasks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(taskData)
@@ -230,7 +230,7 @@ async function handleBroadcast(e) {
     };
 
     try {
-        const response = await fetch('http://localhost:3002/api/broadcast', {
+        const response = await fetch('https://event-driver-notification-system.onrender.com/api/broadcast', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(broadcastData)
@@ -327,7 +327,7 @@ function updateTaskUserSelectors() {
 async function fetchNotifications() {
     if (!activeUserId) return;
     try {
-        const response = await fetch(`http://localhost:3002/api/notifications/${activeUserId}`);
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/notifications/${activeUserId}`);
         const notifications = await response.json();
         const unreadCount = notifications.filter(n => n.status === 'unread').length;
         document.getElementById('noti-badge').textContent = unreadCount;
@@ -346,13 +346,13 @@ async function fetchNotifications() {
 }
 
 async function markAllNotificationsRead() {
-    await fetch(`http://localhost:3002/api/notifications/read-all?userId=${activeUserId}`, { method: 'POST' });
+    await fetch(`https://event-driver-notification-system.onrender.com/api/notifications/read-all?userId=${activeUserId}`, { method: 'POST' });
     fetchNotifications();
 }
 
 async function deleteUser(id) {
     if (!confirm('Are you sure you want to delete this user?')) return;
-    await fetch(`http://localhost:3002/api/users/${id}`, { method: 'DELETE' });
+    await fetch(`https://event-driver-notification-system.onrender.com/api/users/${id}`, { method: 'DELETE' });
     fetchUsers();
     fetchStats();
     showToast('User deleted');
@@ -362,7 +362,7 @@ async function deleteTask(id) {
     if (!confirm('Are you sure you want to delete this task?')) return;
     showLoader();
     try {
-        const response = await fetch(`http://localhost:3002/api/tasks/${id}`, { method: 'DELETE' });
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/tasks/${id}`, { method: 'DELETE' });
         if (response.ok) {
             showToast('Task deleted successfully');
             fetchTasks();

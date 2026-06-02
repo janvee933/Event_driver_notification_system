@@ -64,7 +64,7 @@ async function handleSignup(e) {
     }
 
     try {
-        const response = await fetch('http://localhost:3002/api/signup', {
+        const response = await fetch('https://event-driver-notification-system.onrender.com/api/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(signupData)
@@ -93,7 +93,7 @@ async function handleLogin(e) {
     };
 
     try {
-        const response = await fetch('http://localhost:3002/api/login', {
+        const response = await fetch('https://event-driver-notification-system.onrender.com/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(loginData)
@@ -119,7 +119,7 @@ async function handleForgotPassword(e) {
     showLoader();
     const email = document.getElementById('forgot-email').value;
     try {
-        const response = await fetch('http://localhost:3002/api/forgot-password', {
+        const response = await fetch('https://event-driver-notification-system.onrender.com/api/forgot-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
@@ -143,7 +143,7 @@ async function handleResetPassword(e) {
     const token = document.getElementById('reset-token').value;
     const newPassword = document.getElementById('reset-password').value;
     try {
-        const response = await fetch('http://localhost:3002/api/reset-password', {
+        const response = await fetch('https://event-driver-notification-system.onrender.com/api/reset-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, token, newPassword })

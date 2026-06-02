@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     activeUserId = user.id;
-    socket = io('http://localhost:3002');
+    socket = io('https://event-driver-notification-system.onrender.com');
 
     // Signal that this user is online
     socket.emit('user_online', activeUserId);
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function fetchTasks() {
     showLoader();
     try {
-        const response = await fetch(`http://localhost:3002/api/tasks?userId=${activeUserId}&role=Employee`);
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/tasks?userId=${activeUserId}&role=Employee`);
         tasks = await response.json();
         renderTasksTable();
         renderRecentTasks();
@@ -64,7 +64,7 @@ async function fetchTasks() {
 
 async function fetchStats() {
     try {
-        const response = await fetch(`http://localhost:3002/api/stats?userId=${activeUserId}&role=Employee`);
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/stats?userId=${activeUserId}&role=Employee`);
         const stats = await response.json();
         document.getElementById('stats-tasks').textContent = stats.activeTasks || 0;
         document.getElementById('stats-notis').textContent = stats.totalNotifications || 0;
@@ -122,7 +122,7 @@ async function completeTask(id) {
 
     try {
         showLoader();
-        const response = await fetch(`http://localhost:3002/api/tasks/${id}/status`, {
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/tasks/${id}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'completed' })
@@ -176,7 +176,7 @@ document.getElementById('task-file-input')?.addEventListener('change', async (e)
     formData.append('taskFile', file);
     try {
         showLoader();
-        const response = await fetch(`http://localhost:3002/api/tasks/${currentlyUploadingTaskId}/upload`, {
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/tasks/${currentlyUploadingTaskId}/upload`, {
             method: 'POST',
             body: formData
         });
@@ -235,7 +235,7 @@ function renderRecentTasks() {
 async function fetchNotifications() {
     if (!activeUserId) return;
     try {
-        const response = await fetch(`http://localhost:3002/api/notifications/${activeUserId}`);
+        const response = await fetch(`https://event-driver-notification-system.onrender.com/api/notifications/${activeUserId}`);
         const notifications = await response.json();
         const unreadCount = notifications.filter(n => n.status === 'unread').length;
         document.getElementById('noti-badge').textContent = unreadCount;
@@ -254,7 +254,7 @@ async function fetchNotifications() {
 }
 
 async function markAllNotificationsRead() {
-    await fetch(`http://localhost:3002/api/notifications/read-all?userId=${activeUserId}`, { method: 'POST' });
+    await fetch(`https://event-driver-notification-system.onrender.com/api/notifications/read-all?userId=${activeUserId}`, { method: 'POST' });
     fetchNotifications();
 }
 
